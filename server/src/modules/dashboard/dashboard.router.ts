@@ -501,14 +501,14 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
         }>(`
           SELECT
             COALESCE((
-              SELECT SUM(si.total_price)
+              SELECT SUM(COALESCE(si.net_total, si.total_price, 0))
               FROM sale_items si
               JOIN sales s ON s.id = si.sale_id
               WHERE DATE_TRUNC('month', s.created_at) = DATE_TRUNC('month', NOW())${salesAliasFilter}
             ), 0) AS sold_revenue,
 
             COALESCE((
-              SELECT SUM(sri.total_price)
+              SELECT SUM(COALESCE(sri.net_total, sri.total_price, 0))
               FROM sales_return_items sri
               JOIN sales_returns sr ON sr.id = sri.return_id
               JOIN sales s ON s.id = sr.sale_id
@@ -516,7 +516,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
             ), 0) AS returned_revenue,
 
             COALESCE((
-              SELECT SUM(si.quantity * p.purchase_price)
+              SELECT SUM(si.quantity * COALESCE(si.unit_cost, p.purchase_price, 0))
               FROM sale_items si
               JOIN sales s ON s.id = si.sale_id
               JOIN products p ON p.id = si.product_id
@@ -524,7 +524,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
             ), 0) AS sold_cost,
 
             COALESCE((
-              SELECT SUM(sri.quantity * p.purchase_price)
+              SELECT SUM(sri.quantity * COALESCE(sri.unit_cost, p.purchase_price, 0))
               FROM sales_return_items sri
               JOIN sales_returns sr ON sr.id = sri.return_id
               JOIN sales s ON s.id = sr.sale_id
