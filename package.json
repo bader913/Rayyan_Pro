@@ -1,0 +1,100 @@
+{
+  "name": "rayyan-pro-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "electron/main.cjs",
+  "scripts": {
+  "dev:client": "npm --prefix client run dev",
+  "dev:server": "npm --prefix server run dev",
+  "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+  "build:client": "npm --prefix client run build",
+  "build:server": "npm --prefix server run build",
+  "build": "npm run build:client && npm run build:server",
+  "electron": "cross-env APP_PORT=3200 electron .",
+  "electron:dev": "cross-env APP_PORT=3200 electron .",
+  "prepare:dist:full": "node scripts/set-distribution.cjs standard",
+  "prepare:dist:trial": "node scripts/set-distribution.cjs trial",
+  "dist": "npm run dist:full",
+  "dist:full": "npm run prepare:dist:full && npm run build && electron-builder --win nsis portable",
+  "dist:trial": "npm run prepare:dist:trial && npm run build && electron-builder --win nsis portable",
+  "license:keys": "node scripts/generate-license-keys.cjs",
+  "license:sign": "node scripts/sign-activation.cjs",
+  "license:show-public": "node scripts/show-public-key-env.cjs"
+},
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "cross-env": "^7.0.3",
+    "electron": "^40.8.3",
+    "electron-builder": "^26.8.1",
+    "wait-on": "^8.0.5"
+  },
+  "build": {
+    "appId": "com.rayyan.pro",
+    "productName": "Rayyan Pro",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/icon.ico",
+        "to": "build/icon.ico"
+      },
+      {
+        "from": "build/distribution.config.json",
+        "to": "build/distribution.config.json"
+      },
+      {
+        "from": "client/dist",
+        "to": "client/dist"
+      },
+      {
+        "from": "server/dist",
+        "to": "server/dist"
+      },
+      {
+        "from": "server/package.json",
+        "to": "server/package.json"
+      },
+      {
+        "from": "server/node_modules",
+        "to": "server/node_modules"
+      },
+      {
+        "from": "server/.env",
+        "to": "server/.env"
+      },
+      {
+        "from": "migrations",
+        "to": "migrations"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "executableName": "Rayyan Pro",
+      "icon": "build/icon.ico"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
+    }
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1"
+  }
+}

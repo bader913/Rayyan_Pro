@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>إعداد Rayyan Pro</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 880px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 22px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 24px 28px 10px;
+    }
+
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      color: #ffffff;
+    }
+
+    .header p {
+      margin: 0;
+      color: #cbd5e1;
+      line-height: 1.8;
+      font-size: 14px;
+    }
+
+    .body {
+      padding: 24px 28px 28px;
+    }
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .mode-card {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      cursor: pointer;
+      transition: 0.15s ease;
+    }
+
+    .mode-card:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .mode-card.active {
+      border-color: #10b981;
+      background: rgba(16, 185, 129, 0.10);
+    }
+
+    .mode-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .mode-desc {
+      font-size: 13px;
+      color: #cbd5e1;
+      line-height: 1.7;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="number"] {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      color: white;
+      padding: 12px 14px;
+      border-radius: 12px;
+      outline: none;
+      font-size: 14px;
+    }
+
+    input:focus {
+      border-color: #10b981;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .checkbox-row input {
+      transform: scale(1.1);
+    }
+
+    .hint {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(59, 130, 246, 0.10);
+      border: 1px solid rgba(59, 130, 246, 0.20);
+      color: #dbeafe;
+      line-height: 1.8;
+      font-size: 13px;
+    }
+
+    .status {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.8;
+      display: none;
+    }
+
+    .status.show {
+      display: block;
+    }
+
+    .status.success {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #bbf7d0;
+    }
+
+    .status.error {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: #fecaca;
+    }
+
+    .status.warn {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      color: #fde68a;
+    }
+
+    .db-panels {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .db-box {
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .db-box.current {
+      border-color: rgba(14, 165, 233, 0.25);
+      background: rgba(14, 165, 233, 0.08);
+    }
+
+    .db-box.next {
+      border-color: rgba(16, 185, 129, 0.25);
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    .db-title {
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #ffffff;
+    }
+
+    .db-main {
+      font-size: 15px;
+      font-weight: 800;
+      color: #f8fafc;
+      word-break: break-word;
+      line-height: 1.8;
+    }
+
+    .db-meta {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #cbd5e1;
+      line-height: 1.8;
+    }
+
+    .db-empty {
+      font-size: 13px;
+      color: #cbd5e1;
+      line-height: 1.8;
+    }
+
+    .critical-note {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      color: #fde68a;
+      font-size: 13px;
+      line-height: 1.9;
+    }
+
+    .actions {
+      margin-top: 22px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 18px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.10);
+      color: white;
+    }
+
+    .btn-primary:disabled,
+    .btn-secondary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .muted {
+      margin-top: 10px;
+      color: #94a3b8;
+      font-size: 12px;
+    }
+
+    @media (max-width: 720px) {
+
+      .grid,
+      .mode-grid,
+      .db-panels {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <div class="header">
+      <h1>إعداد أول تشغيل</h1>
+      <p>
+        اختر نوع هذا الجهاز ثم أدخل معلومات قاعدة البيانات.
+        التطبيق سيعمل محليًا على هذا الجهاز في الحالتين، لكن الفرق سيكون فقط في مكان قاعدة البيانات.
+      </p>
+    </div>
+
+    <div class="body">
+      <div class="mode-grid">
+        <div class="mode-card active" id="mode-main-card">
+          <div class="mode-title">جهاز رئيسي</div>
+          <div class="mode-desc">
+            هذا الجهاز يشغّل البرنامج محليًا ويتصل غالبًا بقاعدة بيانات PostgreSQL محلية.
+          </div>
+        </div>
+
+        <div class="mode-card" id="mode-branch-card">
+          <div class="mode-title">جهاز فرعي</div>
+          <div class="mode-desc">
+            هذا الجهاز يشغّل البرنامج محليًا أيضًا، لكن يتصل بقاعدة بيانات موجودة على جهاز رئيسي عبر الشبكة.
+          </div>
+        </div>
+      </div>
+
+      <input type="hidden" id="mode" value="main" />
+
+      <div class="grid">
+        <div class="field">
+          <label for="dbHost">Host / IP قاعدة البيانات</label>
+          <input id="dbHost" type="text" value="127.0.0.1" />
+        </div>
+
+        <div class="field">
+          <label for="dbPort">Port قاعدة البيانات</label>
+          <input id="dbPort" type="number" value="5432" />
+        </div>
+
+        <div class="field">
+          <label for="dbName">اسم قاعدة البيانات</label>
+          <input id="dbName" type="text" value="" />
+        </div>
+
+        <div class="field">
+          <label for="dbUser">اسم المستخدم</label>
+          <input id="dbUser" type="text" value="" />
+        </div>
+
+        <div class="field full">
+          <label for="dbPassword">كلمة المرور</label>
+          <input id="dbPassword" type="password" value="" />
+        </div>
+      </div>
+
+      <div class="checkbox-row">
+        <input id="dbSsl" type="checkbox" />
+        <label for="dbSsl">استخدام SSL</label>
+      </div>
+
+      <div class="hint" id="modeHint">
+        في وضع الجهاز الرئيسي، اترك عنوان القاعدة غالبًا <strong>127.0.0.1</strong> أو <strong>localhost</strong>.
+      </div>
+
+      <div class="db-panels">
+        <div class="db-box current">
+          <div class="db-title">قاعدة البيانات النشطة حاليًا</div>
+          <div class="db-main" id="currentDbMain">جارٍ التحميل...</div>
+          <div class="db-meta" id="currentDbMeta"></div>
+        </div>
+
+        <div class="db-box next">
+          <div class="db-title">القاعدة التي ستصبح فعالة بعد الحفظ</div>
+          <div class="db-main" id="nextDbMain">لم يتم إدخال البيانات بعد</div>
+          <div class="db-meta" id="nextDbMeta"></div>
+        </div>
+      </div>
+
+      <div class="critical-note" id="dbWarningBox">
+        مهم جدًا: التطبيق يعمل دائمًا على <strong>قاعدة بيانات واحدة فعّالة</strong>، وهي الموضحة أعلاه.
+        إذا فتحت قاعدة أخرى في pgAdmin فلن ترى الشيفتات أو الفواتير الخاصة بالقاعدة الفعلية.
+      </div>
+
+      <div class="status" id="statusBox"></div>
+
+      <div class="actions">
+        <button class="btn-secondary" type="button" id="backBtn">رجوع</button>
+        <button class="btn-secondary" type="button" id="testBtn">اختبار الاتصال</button>
+        <button class="btn-secondary" type="button" id="structureBtn">هيكلة البيانات</button>
+        <button class="btn-primary" type="button" id="saveBtn">حفظ ومتابعة</button>
+      </div>
+
+      <div class="muted">
+        بعد الحفظ سيُعاد تشغيل التطبيق ليبدأ بالإعدادات الجديدة.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const modeInput = document.getElementById('mode');
+    const mainCard = document.getElementById('mode-main-card');
+    const branchCard = document.getElementById('mode-branch-card');
+    const modeHint = document.getElementById('modeHint');
+
+    const dbHost = document.getElementById('dbHost');
+    const dbPort = document.getElementById('dbPort');
+    const dbName = document.getElementById('dbName');
+    const dbUser = document.getElementById('dbUser');
+    const dbPassword = document.getElementById('dbPassword');
+    const dbSsl = document.getElementById('dbSsl');
+
+    const currentDbMain = document.getElementById('currentDbMain');
+    const currentDbMeta = document.getElementById('currentDbMeta');
+    const nextDbMain = document.getElementById('nextDbMain');
+    const nextDbMeta = document.getElementById('nextDbMeta');
+    const dbWarningBox = document.getElementById('dbWarningBox');
+
+    const statusBox = document.getElementById('statusBox');
+    const backBtn = document.getElementById('backBtn');
+    const testBtn = document.getElementById('testBtn');
+    const structureBtn = document.getElementById('structureBtn');
+    const saveBtn = document.getElementById('saveBtn');
+
+    let currentRuntimeConfig = null;
+
+    function setMode(mode) {
+      modeInput.value = mode;
+
+      mainCard.classList.toggle('active', mode === 'main');
+      branchCard.classList.toggle('active', mode === 'branch');
+
+      if (mode === 'main') {
+        if (!dbHost.value || dbHost.value === '127.0.0.1' || dbHost.value === 'localhost') {
+          dbHost.value = '127.0.0.1';
+        }
+        modeHint.innerHTML =
+          'في وضع الجهاز الرئيسي، اترك عنوان القاعدة غالبًا <strong>127.0.0.1</strong> أو <strong>localhost</strong>.';
+      } else {
+        if (dbHost.value === '127.0.0.1' || dbHost.value === 'localhost') {
+          dbHost.value = '';
+        }
+        modeHint.innerHTML =
+          'في وضع الجهاز الفرعي، أدخل <strong>IP الجهاز الرئيسي</strong> أو اسم المضيف الذي يستضيف PostgreSQL.';
+      }
+
+      updateNextDbPreview();
+    }
+
+    function getPayload() {
+      return {
+        mode: modeInput.value === 'branch' ? 'branch' : 'main',
+        host: String(dbHost.value || '').trim(),
+        port: Number(dbPort.value || 5432),
+        database: String(dbName.value || '').trim(),
+        user: String(dbUser.value || '').trim(),
+        password: String(dbPassword.value || ''),
+        ssl: !!dbSsl.checked,
+      };
+    }
+
+    function formatDbLabel(cfg) {
+      if (!cfg || !cfg.host || !cfg.database || !cfg.user) {
+        return 'بيانات غير مكتملة';
+      }
+
+      const sslText = cfg.ssl ? ' · SSL' : '';
+      return `${cfg.host}:${cfg.port} / ${cfg.database}`;
+    }
+
+    function formatDbMeta(cfg) {
+      if (!cfg) return '';
+      const modeLabel = cfg.mode === 'branch' || cfg.mode === 'secondary' ? 'فرعي' : 'رئيسي';
+      return `المستخدم: ${cfg.user || '—'} · الوضع: ${modeLabel}${cfg.ssl ? ' · SSL مفعّل' : ''}`;
+    }
+
+    function sameDb(a, b) {
+      if (!a || !b) return false;
+
+      return (
+        String(a.host || '') === String(b.host || '') &&
+        Number(a.port || 5432) === Number(b.port || 5432) &&
+        String(a.database || '') === String(b.database || '') &&
+        String(a.user || '') === String(b.user || '') &&
+        !!a.ssl === !!b.ssl
+      );
+    }
+
+    function renderCurrentDb(cfg) {
+      if (!cfg) {
+        currentDbMain.textContent = 'لا توجد قاعدة بيانات محفوظة بعد';
+        currentDbMeta.textContent = 'احفظ الإعدادات أول مرة ليصبح هذا الجهاز مرتبطًا بقاعدة البيانات المحددة.';
+        return;
+      }
+
+      currentDbMain.textContent = formatDbLabel(cfg);
+      currentDbMeta.textContent = formatDbMeta(cfg);
+    }
+
+    function updateNextDbPreview() {
+      const payload = getPayload();
+
+      if (!payload.host && !payload.database && !payload.user) {
+        nextDbMain.textContent = 'لم يتم إدخال البيانات بعد';
+        nextDbMeta.textContent = '';
+        dbWarningBox.innerHTML =
+          'مهم جدًا: التطبيق يعمل دائمًا على <strong>قاعدة بيانات واحدة فعّالة</strong>، وهي الموضحة أعلاه. إذا فتحت قاعدة أخرى في pgAdmin فلن ترى الشيفتات أو الفواتير الخاصة بالقاعدة الفعلية.';
+        return;
+      }
+
+      nextDbMain.textContent = formatDbLabel(payload);
+      nextDbMeta.textContent = formatDbMeta({
+        ...payload,
+        mode: payload.mode === 'branch' ? 'secondary' : 'primary',
+      });
+
+      if (currentRuntimeConfig && !sameDb(currentRuntimeConfig, {
+        ...payload,
+        mode: payload.mode === 'branch' ? 'secondary' : 'primary',
+      })) {
+        dbWarningBox.innerHTML =
+          'تنبيه: أنت بصدد <strong>تغيير قاعدة البيانات الفعالة</strong>. بعد الحفظ سيعمل التطبيق على القاعدة الجديدة فقط، وقد تبدو لك الشيفتات أو الفواتير "مفقودة" إذا فتحت قاعدة مختلفة في pgAdmin.';
+      } else {
+        dbWarningBox.innerHTML =
+          'مهم جدًا: التطبيق يعمل دائمًا على <strong>قاعدة بيانات واحدة فعّالة</strong>، وهي الموضحة أعلاه. إذا فتحت قاعدة أخرى في pgAdmin فلن ترى الشيفتات أو الفواتير الخاصة بالقاعدة الفعلية.';
+      }
+    }
+
+    function showStatus(type, message) {
+      statusBox.className = 'status show ' + type;
+      statusBox.textContent = message;
+    }
+
+    function setBusy(busy) {
+      backBtn.disabled = busy;
+      testBtn.disabled = busy;
+      structureBtn.disabled = busy;
+      saveBtn.disabled = busy;
+    }
+
+    mainCard.addEventListener('click', () => setMode('main'));
+    branchCard.addEventListener('click', () => setMode('branch'));
+
+    [dbHost, dbPort, dbName, dbUser, dbPassword, dbSsl].forEach((el) => {
+      el.addEventListener('input', updateNextDbPreview);
+      el.addEventListener('change', updateNextDbPreview);
+    });
+
+    backBtn.addEventListener('click', async () => {
+      try {
+        const cfg = await window.electronAPI.getConnectionConfig();
+        const host = String(cfg?.host || 'localhost');
+        const port = String(cfg?.port || '3200');
+        window.location.href = `http://${host}:${port}/settings`;
+      } catch {
+        if (window.history.length > 1) {
+          window.history.back();
+        }
+      }
+    });
+
+    testBtn.addEventListener('click', async () => {
+      const payload = getPayload();
+
+      setBusy(true);
+      showStatus('success', `جاري اختبار الاتصال بقاعدة: ${formatDbLabel(payload)}`);
+
+      try {
+        const result = await window.electronAPI.testDbConnection(payload);
+        if (result && result.ok) {
+          showStatus('success', `${result.message || 'تم الاتصال بنجاح'} — القاعدة المختبرة: ${formatDbLabel(payload)}`);
+        } else {
+          showStatus('error', (result && result.message) || 'فشل الاتصال');
+        }
+      } catch (error) {
+        showStatus('error', error?.message || 'حدث خطأ أثناء اختبار الاتصال');
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    structureBtn.addEventListener('click', async () => {
+      const payload = getPayload();
+
+      setBusy(true);
+      showStatus('success', `جاري اختبار الاتصال ثم هيكلة قاعدة: ${formatDbLabel(payload)}`);
+
+      try {
+        const testResult = await window.electronAPI.testDbConnection(payload);
+
+        if (!testResult || !testResult.ok) {
+          showStatus('error', (testResult && testResult.message) || 'فشل الاتصال بقاعدة البيانات');
+          setBusy(false);
+          return;
+        }
+
+        const result = await window.electronAPI.runDatabaseSetup?.(payload);
+
+        if (!result || !result.ok) {
+          showStatus('error', (result && result.message) || 'فشل تنفيذ هيكلة البيانات');
+          setBusy(false);
+          return;
+        }
+
+        showStatus(
+          'success',
+          `${result.message || 'تمت هيكلة قاعدة البيانات بنجاح.'} — القاعدة: ${formatDbLabel(payload)}`
+        );
+      } catch (error) {
+        showStatus('error', error?.message || 'حدث خطأ أثناء هيكلة البيانات');
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    saveBtn.addEventListener('click', async () => {
+      const payload = getPayload();
+
+      if (!payload.host || !payload.database || !payload.user) {
+        showStatus('error', 'أكمل بيانات الاتصال المطلوبة أولًا');
+        return;
+      }
+
+      const nextRuntimeConfig = {
+        ...payload,
+        mode: payload.mode === 'main' ? 'primary' : 'secondary',
+      };
+
+      if (currentRuntimeConfig && !sameDb(currentRuntimeConfig, nextRuntimeConfig)) {
+        const confirmed = window.confirm(
+          `أنت على وشك تغيير قاعدة البيانات الفعالة.\n\nالقاعدة الحالية:\n${formatDbLabel(currentRuntimeConfig)}\n\nالقاعدة الجديدة:\n${formatDbLabel(nextRuntimeConfig)}\n\nهل تريد المتابعة؟`
+        );
+
+        if (!confirmed) {
+          return;
+        }
+      }
+
+      setBusy(true);
+      showStatus('success', `جاري التحقق ثم الحفظ على القاعدة: ${formatDbLabel(payload)}`);
+
+      try {
+        const testResult = await window.electronAPI.testDbConnection(payload);
+
+        if (!testResult || !testResult.ok) {
+          showStatus('error', (testResult && testResult.message) || 'فشل الاتصال بقاعدة البيانات');
+          setBusy(false);
+          return;
+        }
+
+        const connectionResult = await window.electronAPI.saveConnectionConfig({
+          mode: payload.mode,
+          host: 'localhost',
+          port: '3200',
+        });
+
+        if (!connectionResult || !connectionResult.ok) {
+          showStatus('error', (connectionResult && connectionResult.message) || 'فشل حفظ إعداد تشغيل التطبيق');
+          setBusy(false);
+          return;
+        }
+
+        const dbResult = await window.electronAPI.saveDbRuntimeConfig({
+          mode: payload.mode === 'main' ? 'primary' : 'secondary',
+          host: payload.host,
+          port: payload.port,
+          database: payload.database,
+          user: payload.user,
+          password: payload.password,
+          ssl: payload.ssl,
+        });
+
+        if (!dbResult || !dbResult.ok) {
+          showStatus('error', (dbResult && dbResult.message) || 'فشل حفظ إعداد قاعدة البيانات');
+          setBusy(false);
+          return;
+        }
+
+        showStatus(
+          'success',
+          `تم الحفظ بنجاح. القاعدة الفعالة الجديدة ستكون: ${formatDbLabel(payload)} — سيتم الآن إعادة تشغيل التطبيق...`
+        );
+
+        setTimeout(() => {
+          window.electronAPI.relaunchApp();
+        }, 900);
+      } catch (error) {
+        showStatus('error', error?.message || 'حدث خطأ غير متوقع');
+        setBusy(false);
+      }
+    });
+
+    (async function init() {
+      try {
+        const existingConnection = await window.electronAPI.getConnectionConfig();
+        const existingDb = await window.electronAPI.getDbRuntimeConfig();
+
+        if (existingConnection && existingConnection.mode) {
+          setMode(existingConnection.mode === 'branch' ? 'branch' : 'main');
+        }
+
+        if (existingDb && existingDb.ok && existingDb.data) {
+          const cfg = existingDb.data;
+          currentRuntimeConfig = cfg;
+
+          if (cfg.host) dbHost.value = cfg.host;
+          if (cfg.port) dbPort.value = String(cfg.port);
+          if (cfg.database) dbName.value = cfg.database;
+          if (cfg.user) dbUser.value = cfg.user;
+          if (typeof cfg.ssl === 'boolean') dbSsl.checked = cfg.ssl;
+        }
+
+        renderCurrentDb(currentRuntimeConfig);
+        updateNextDbPreview();
+      } catch {
+        renderCurrentDb(null);
+        updateNextDbPreview();
+      }
+    })();
+  </script>
+</body>
+
+</html>
