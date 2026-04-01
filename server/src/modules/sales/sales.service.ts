@@ -62,6 +62,45 @@ export function resolvePrice(
   return { price: parseFloat(product.retail_price), type: 'retail' };
 }
 
+function roundMoney4(value: number): number {
+  return Number((Number.isFinite(value) ? value : 0).toFixed(4));
+}
+
+function allocateNetTotals(grossLineTotals: number[], finalTotal: number): number[] {
+  const safeGrossTotals = grossLineTotals.map((value) => roundMoney4(Math.max(value, 0)));
+  const safeFinalTotal = roundMoney4(Math.max(finalTotal, 0));
+  const grossSum = roundMoney4(
+    safeGrossTotals.reduce((sum, value) => sum + value, 0)
+  );
+
+  if (safeGrossTotals.length === 0) return [];
+  if (grossSum <= 0) return safeGrossTotals.map(() => 0);
+
+  const totalReduction = roundMoney4(Math.max(grossSum - safeFinalTotal, 0));
+  const netTotals: number[] = [];
+  let runningNet = 0;
+
+  for (let index = 0; index < safeGrossTotals.length; index++) {
+    if (index === safeGrossTotals.length - 1) {
+      netTotals.push(roundMoney4(Math.max(safeFinalTotal - runningNet, 0)));
+      continue;
+    }
+
+    const allocatedReduction = roundMoney4(
+      (totalReduction * safeGrossTotals[index]) / grossSum
+    );
+
+    const net = roundMoney4(
+      Math.max(safeGrossTotals[index] - allocatedReduction, 0)
+    );
+
+    netTotals.push(net);
+    runningNet = roundMoney4(runningNet + net);
+  }
+
+  return netTotals;
+}
+
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 export class SalesService {
@@ -172,7 +211,6 @@ export class SalesService {
       };
 
       const resolveSalesWarehouse = async () => {
-        // 1) إذا كانت المستودعات المتعددة مفعلة والمستخدم اختار مستودعًا صراحةً
         if (isMultiWarehouseEnabled && input.warehouse_id) {
           const selectedWarehouse = await getWarehouseById(input.warehouse_id);
 
@@ -187,7 +225,6 @@ export class SalesService {
           return selectedWarehouse;
         }
 
-        // 2) إن وجد إعداد مستودع افتراضي للبيع، نستخدمه دائمًا
         if (configuredDefaultWarehouseId) {
           const configuredWarehouse = await getWarehouseById(configuredDefaultWarehouseId);
 
@@ -208,11 +245,9 @@ export class SalesService {
           return configuredWarehouse;
         }
 
-        // 3) وإلا نحاول MAIN
         const mainWarehouse = await getMainWarehouse();
         if (mainWarehouse) return mainWarehouse;
 
-        // 4) وإلا أول مستودع نشط
         const firstActiveWarehouse = await getFirstActiveWarehouse();
         if (firstActiveWarehouse) return firstActiveWarehouse;
 
@@ -240,7 +275,8 @@ export class SalesService {
           throw Object.assign(new Error('الوردية مغلقة — لا يمكن إتمام البيع'), { statusCode: 409 });
         }
       }
-            if (input.source_order_id) {
+
+      if (input.source_order_id) {
         const sourceOrderRes = await client.query<{
           id: number;
           status: 'new' | 'reviewed' | 'converted' | 'cancelled';
@@ -276,12 +312,12 @@ export class SalesService {
       let customerType: string | undefined;
       let customerSnapshot:
         | {
-          name: string;
-          customer_type: string;
-          balance: string;
-          credit_limit: string;
-          bonus_balance: string;
-        }
+            name: string;
+            customer_type: string;
+            balance: string;
+            credit_limit: string;
+            bonus_balance: string;
+          }
         | undefined;
 
       if (input.customer_id) {
@@ -312,6 +348,8 @@ export class SalesService {
 
       const processedItems: Array<SaleItemInput & {
         total_price: number;
+        net_total: number;
+        unit_cost: number;
         product_name: string;
       }> = [];
 
@@ -325,12 +363,13 @@ export class SalesService {
           name: string;
           stock_quantity: string;
           is_active: boolean;
+          purchase_price: string;
           retail_price: string;
           wholesale_price: string | null;
           wholesale_min_qty: string;
         }>(
           `SELECT id, name, stock_quantity, is_active,
-                  retail_price, wholesale_price, wholesale_min_qty
+                  purchase_price, retail_price, wholesale_price, wholesale_min_qty
            FROM products
            WHERE id = $1
            FOR UPDATE`,
@@ -380,13 +419,31 @@ export class SalesService {
           validatedProducts.add(item.product_id);
         }
 
-        const total_price = item.quantity * item.unit_price - item.item_discount;
-        processedItems.push({ ...item, total_price, product_name: p.name });
+        const total_price = roundMoney4(item.quantity * item.unit_price - item.item_discount);
+
+        if (total_price < -0.000001) {
+          throw Object.assign(
+            new Error(`خصم السطر للصنف "${p.name}" جعل إجمالي السطر سالبًا`),
+            { statusCode: 400 }
+          );
+        }
+
+        processedItems.push({
+          ...item,
+          total_price,
+          net_total: 0,
+          unit_cost: roundMoney4(parseFloat(String(p.purchase_price || 0))),
+          product_name: p.name,
+        });
       }
 
-      const subtotal = processedItems.reduce((s, i) => s + i.quantity * i.unit_price, 0);
-      const items_discount_total = processedItems.reduce((s, i) => s + i.item_discount, 0);
-      const base_total = subtotal - items_discount_total - input.sale_discount;
+      const subtotal = roundMoney4(
+        processedItems.reduce((s, i) => s + i.quantity * i.unit_price, 0)
+      );
+      const items_discount_total = roundMoney4(
+        processedItems.reduce((s, i) => s + i.item_discount, 0)
+      );
+      const base_total = roundMoney4(subtotal - items_discount_total - input.sale_discount);
 
       if (base_total < 0) {
         throw Object.assign(new Error('إجمالي الفاتورة لا يمكن أن يكون سالباً'), { statusCode: 400 });
@@ -414,21 +471,48 @@ export class SalesService {
         const customerBonusBalance = parseFloat(customerSnapshot?.bonus_balance ?? '0') || 0;
 
         if (bonusEnabled && input.use_customer_bonus && customerBonusBalance > 0 && base_total > 0) {
-          bonusUsedAmount = Math.min(customerBonusBalance, base_total);
+          bonusUsedAmount = roundMoney4(Math.min(customerBonusBalance, base_total));
         }
       }
 
-      const total_amount = base_total - bonusUsedAmount;
+      const total_amount = roundMoney4(base_total - bonusUsedAmount);
 
       if (input.customer_id && bonusEnabled && bonusRate > 0 && total_amount > 0) {
-        bonusEarnedAmount = Number(((total_amount * bonusRate) / 100).toFixed(4));
+        bonusEarnedAmount = roundMoney4((total_amount * bonusRate) / 100);
       }
 
-      const paid_amount = input.payment_method === 'credit' ? 0 : input.paid_amount;
-      const due_amount = total_amount - paid_amount;
+      const paid_amount = input.payment_method === 'credit' ? 0 : roundMoney4(input.paid_amount);
+      const due_amount = roundMoney4(total_amount - paid_amount);
 
       if (input.payment_method === 'credit' && !input.customer_id) {
         throw Object.assign(new Error('البيع بالآجل يتطلب تحديد عميل'), { statusCode: 400 });
+      }
+
+      const grossLineSum = roundMoney4(
+        processedItems.reduce((sum, item) => sum + item.total_price, 0)
+      );
+
+      const lineNetTotals = allocateNetTotals(
+        processedItems.map((item) => item.total_price),
+        total_amount
+      );
+
+      for (let index = 0; index < processedItems.length; index++) {
+        processedItems[index].net_total = roundMoney4(lineNetTotals[index] ?? 0);
+      }
+
+      // احتياط إضافي: يجب أن يكون صافي السطور مساويًا لإجمالي الفاتورة النهائي
+      const recomputedNet = roundMoney4(
+        processedItems.reduce((sum, item) => sum + item.net_total, 0)
+      );
+
+      if (Math.abs(recomputedNet - total_amount) > 0.0002) {
+        throw Object.assign(
+          new Error(
+            `تعذر توزيع الخصومات على بنود الفاتورة بدقة. gross=${grossLineSum}, net=${recomputedNet}, expected=${total_amount}`
+          ),
+          { statusCode: 500 }
+        );
       }
 
       const invoiceNumber = await generateInvoiceNumber(client, 'INV');
@@ -465,9 +549,19 @@ export class SalesService {
       for (const item of processedItems) {
         await client.query(
           `INSERT INTO sale_items
-             (sale_id, product_id, quantity, unit_price, discount, total_price, price_type)
-           VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-          [saleId, item.product_id, item.quantity, item.unit_price, item.item_discount, item.total_price, item.price_type]
+             (sale_id, product_id, quantity, unit_price, discount, total_price, price_type, unit_cost, net_total)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+          [
+            saleId,
+            item.product_id,
+            item.quantity,
+            item.unit_price,
+            item.item_discount,
+            item.total_price,
+            item.price_type,
+            item.unit_cost,
+            item.net_total,
+          ]
         );
 
         const movement = await recordStockMovement(client, {
@@ -502,8 +596,8 @@ export class SalesService {
 
       if (input.customer_id) {
         const balanceBefore = parseFloat(customerSnapshot?.balance ?? '0');
-        const saleBalanceAfter = balanceBefore + total_amount;
-        const finalBalance = saleBalanceAfter - paid_amount;
+        const saleBalanceAfter = roundMoney4(balanceBefore + total_amount);
+        const finalBalance = roundMoney4(saleBalanceAfter - paid_amount);
 
         const bonusSettingsResult = await client.query<{ key: string; value: string }>(
           `SELECT key, value
@@ -624,10 +718,9 @@ export class SalesService {
             ]
           );
         }
-
-
       }
-            if (lockedSourceOrder) {
+
+      if (lockedSourceOrder) {
         await client.query(
           `
           UPDATE customer_orders
@@ -720,7 +813,7 @@ export class SalesService {
       conditions.push(`s.customer_id = $${idx++}`);
       values.push(filters.customer_id);
     }
-        if (filters.warehouse_id) {
+    if (filters.warehouse_id) {
       conditions.push(`s.warehouse_id = $${idx++}`);
       values.push(filters.warehouse_id);
     }
