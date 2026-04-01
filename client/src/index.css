@@ -1,0 +1,225 @@
+@import url('https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700;800&family=Almarai:wght@300;400;700;800&family=Cairo:wght@300;400;500;600;700;800;900&family=Changa:wght@300;400;500;600;700;800&family=El+Messiri:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Mada:wght@300;400;500;600;700;800;900&family=Readex+Pro:wght@300;400;500;600;700&family=Reem+Kufi:wght@400;500;600;700&family=Tajawal:wght@300;400;500;700;800;900&display=swap');
+@import "tailwindcss";
+
+/* ── CSS Custom Properties (Light Mode) ─────────────────────────────────── */
+:root {
+  --primary: #059669;
+  --primary-soft: #d1fae5;
+  --radius: 1rem;
+    --font-app: 'Cairo', 'Segoe UI', 'Noto Sans Arabic', 'Arial', sans-serif;
+
+  /* aliases for reusable UI consistency */
+  --text-color: var(--text-body);
+  --text-primary: var(--text-heading);
+  --border-color: var(--border);
+  direction: rtl;
+
+  /* Layout colors */
+  --bg-page:        #f1f5f9;
+  --bg-sidebar:     #ffffff;
+  --bg-card:        #ffffff;
+  --bg-subtle:      #f8fafc;
+  --bg-muted:       #f1f5f9;
+  --bg-input:       #ffffff;
+
+  /* Text colors */
+  --text-heading:   #0f172a;
+  --text-body:      #334155;
+  --text-secondary: #64748b;
+  --text-muted:     #94a3b8;
+
+  /* Borders */
+  --border:         #e2e8f0;
+  --border-subtle:  #f1f5f9;
+  --border-strong:  #cbd5e1;
+
+  /* Shadows */
+  --shadow-sidebar: 2px 0 12px rgba(0,0,0,0.06);
+  --shadow-card:    0 1px 4px rgba(0,0,0,0.06);
+}
+
+/* ── Dark Mode Overrides ─────────────────────────────────────────────────── */
+html.dark-mode {
+  --bg-page:        #0b1120;
+  --bg-sidebar:     #111827;
+  --bg-card:        #1a2332;
+  --bg-subtle:      #111827;
+  --bg-muted:       #0b1120;
+  --bg-input:       #0f172a;
+
+  --text-heading:   #f1f5f9;
+  --text-body:      #cbd5e1;
+  --text-secondary: #94a3b8;
+  --text-muted:     #64748b;
+
+  --border:         #1e3a5f;
+  --border-subtle:  #0f172a;
+  --border-strong:  #2a4a6b;
+
+  --shadow-sidebar: 2px 0 16px rgba(0,0,0,0.4);
+  --shadow-card:    0 1px 6px rgba(0,0,0,0.3);
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-app);
+  direction: rtl;
+  background-color: var(--bg-page);
+  color: var(--text-body);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+input, select, textarea, button {
+  font-family: inherit;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DARK MODE — Tailwind class overrides
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Backgrounds ── */
+html.dark-mode body { background-color: var(--bg-page); color: var(--text-body); }
+
+html.dark-mode .bg-white  { background-color: var(--bg-card)   !important; }
+html.dark-mode .bg-slate-50  { background-color: var(--bg-subtle) !important; }
+html.dark-mode .bg-slate-100 { background-color: #1e293b !important; }
+html.dark-mode .bg-slate-200 { background-color: #1e293b !important; }
+html.dark-mode .bg-gray-50   { background-color: var(--bg-subtle) !important; }
+html.dark-mode .bg-gray-100  { background-color: #1e293b !important; }
+
+/* ── Text ── */
+html.dark-mode .text-slate-900 { color: #f1f5f9 !important; }
+html.dark-mode .text-slate-800 { color: #e2e8f0 !important; }
+html.dark-mode .text-slate-700 { color: #cbd5e1 !important; }
+html.dark-mode .text-slate-600 { color: #94a3b8 !important; }
+html.dark-mode .text-slate-500 { color: #64748b !important; }
+html.dark-mode .text-slate-400 { color: #64748b !important; }
+html.dark-mode .text-gray-900  { color: #f1f5f9 !important; }
+html.dark-mode .text-gray-800  { color: #e2e8f0 !important; }
+html.dark-mode .text-gray-700  { color: #cbd5e1 !important; }
+html.dark-mode .text-gray-600  { color: #94a3b8 !important; }
+html.dark-mode .text-gray-500  { color: #64748b !important; }
+
+/* ── Borders ── */
+html.dark-mode .border-slate-100 { border-color: var(--border) !important; }
+html.dark-mode .border-slate-200 { border-color: var(--border) !important; }
+html.dark-mode .border-slate-300 { border-color: var(--border-strong) !important; }
+html.dark-mode .border-gray-200  { border-color: var(--border) !important; }
+
+/* ── Hover states ── */
+html.dark-mode .hover\:bg-slate-50:hover  { background-color: #1e293b !important; }
+html.dark-mode .hover\:bg-slate-100:hover { background-color: #1e293b !important; }
+html.dark-mode .hover\:bg-gray-50:hover   { background-color: #1e293b !important; }
+html.dark-mode .hover\:bg-white:hover     { background-color: var(--bg-card) !important; }
+
+/* ── Inputs ── */
+html.dark-mode input:not([type="color"]):not([type="checkbox"]):not([type="radio"]),
+html.dark-mode textarea,
+html.dark-mode select {
+  background-color: var(--bg-input) !important;
+  border-color: var(--border) !important;
+  color: var(--text-heading) !important;
+}
+
+html.dark-mode input::placeholder,
+html.dark-mode textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* ── Dividers ── */
+html.dark-mode hr { border-color: var(--border) !important; }
+
+/* ── Table rows ── */
+html.dark-mode .divide-slate-100 > * + * { border-color: var(--border) !important; }
+html.dark-mode .divide-slate-200 > * + * { border-color: var(--border) !important; }
+
+/* ── Amber/yellow highlights (low stock, warnings) → dark variant ── */
+html.dark-mode .bg-amber-50  { background-color: #1c1a0a !important; }
+html.dark-mode .bg-yellow-50 { background-color: #1a1800 !important; }
+html.dark-mode .bg-green-50  { background-color: #0a1f11 !important; }
+html.dark-mode .bg-red-50    { background-color: #1f0a0a !important; }
+html.dark-mode .bg-blue-50   { background-color: #0a0f1f !important; }
+html.dark-mode .border-amber-200  { border-color: #78350f !important; }
+html.dark-mode .border-green-200  { border-color: #14532d !important; }
+html.dark-mode .border-red-200    { border-color: #7f1d1d !important; }
+
+/* ── Ring/Focus ── */
+html.dark-mode .ring-slate-100 { --tw-ring-color: var(--border) !important; }
+
+/* ── Shadow ── */
+html.dark-mode .shadow,
+html.dark-mode .shadow-sm,
+html.dark-mode .shadow-md { box-shadow: 0 2px 12px rgba(0,0,0,0.4) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIGHT MODE — Fix pages that hard-code dark Tailwind color classes
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Backgrounds */
+html:not(.dark-mode) .bg-slate-900 { background-color: var(--bg-subtle)  !important; }
+html:not(.dark-mode) .bg-slate-800 { background-color: var(--bg-card)    !important; }
+html:not(.dark-mode) .bg-slate-700 { background-color: var(--bg-muted)   !important; }
+
+/* Opacity-modifier variants (modals, table headers, hover) */
+html:not(.dark-mode) .bg-slate-900\/60 { background-color: var(--bg-subtle) !important; }
+html:not(.dark-mode) .bg-slate-800\/60 { background-color: var(--bg-subtle) !important; }
+html:not(.dark-mode) .bg-slate-700\/60 { background-color: var(--bg-muted)  !important; }
+html:not(.dark-mode) .bg-slate-700\/50 { background-color: var(--bg-muted)  !important; }
+html:not(.dark-mode) .bg-slate-700\/30 { background-color: rgba(0,0,0,0.03) !important; }
+
+/* Borders */
+html:not(.dark-mode) .border-slate-700 { border-color: var(--border)       !important; }
+html:not(.dark-mode) .border-slate-600 { border-color: var(--border-strong) !important; }
+
+/* Neutral text — safe to remap */
+html:not(.dark-mode) .text-slate-200 { color: var(--text-heading)   !important; }
+html:not(.dark-mode) .text-slate-300 { color: var(--text-body)      !important; }
+html:not(.dark-mode) .text-slate-400 { color: var(--text-secondary) !important; }
+html:not(.dark-mode) .text-slate-500 { color: var(--text-muted)     !important; }
+
+/* text-white on CONTENT elements (not buttons/spans to avoid breaking UI) */
+html:not(.dark-mode) h1.text-white,
+html:not(.dark-mode) h2.text-white,
+html:not(.dark-mode) h3.text-white,
+html:not(.dark-mode) h4.text-white,
+html:not(.dark-mode) p.text-white,
+html:not(.dark-mode) td.text-white,
+html:not(.dark-mode) th.text-white { color: var(--text-heading) !important; }
+
+/* Fix input/select/textarea text color in light mode */
+html:not(.dark-mode) input.text-white,
+html:not(.dark-mode) select.text-white,
+html:not(.dark-mode) textarea.text-white { color: var(--text-primary) !important; }
+
+/* Hover states */
+html:not(.dark-mode) .hover\:bg-slate-700:hover { background-color: var(--bg-muted) !important; }
+html:not(.dark-mode) .hover\:bg-slate-600:hover { background-color: var(--bg-muted) !important; }
+html:not(.dark-mode) .hover\:text-white:hover    { color: var(--text-heading)        !important; }
+
+/* Table row hover */
+html:not(.dark-mode) tr.hover\:bg-slate-700\/30:hover { background-color: rgba(0,0,0,0.03) !important; }
+
+/* Divide lines */
+html:not(.dark-mode) .divide-slate-700 > * + * { border-color: var(--border) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DARK MODE — Fix pages that hard-code light-mode colors (e.g. ReturnsPage)
+   ═══════════════════════════════════════════════════════════════════════════ */
+html.dark-mode .text-slate-800  { color: var(--text-heading)   !important; }
+html.dark-mode .text-slate-700  { color: var(--text-body)      !important; }
+html.dark-mode .text-slate-600  { color: var(--text-secondary) !important; }
+html.dark-mode .hover\:bg-slate-50:hover  { background-color: var(--bg-muted) !important; }
+html.dark-mode .hover\:bg-slate-100:hover { background-color: var(--bg-muted) !important; }
