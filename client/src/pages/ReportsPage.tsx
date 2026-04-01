@@ -50,6 +50,7 @@ type PurchasesReportResponse =
     >;
   };
 type StockReportResponse = Awaited<ReturnType<typeof reportsApi.stock>>['data'];
+type ProfitReportResponse = Awaited<ReturnType<typeof reportsApi.profit>>['data'];
 const formatWarehouseLabel = (row: WarehouseReportFields) =>
   row.warehouse_name
     ? `${row.warehouse_name}${row.warehouse_code ? ` (${row.warehouse_code})` : ''}`
@@ -133,7 +134,7 @@ export default function ReportsPage() {
   const [stockQ, setStockQ] = useState('');
   const [showLowStock, setShowLowStock] = useState(false);
 
-  const [profitData, setProfitData] = useState<Awaited<ReturnType<typeof reportsApi.profit>>['data'] | null>(null);
+  const [profitData, setProfitData] = useState<ProfitReportResponse | null>(null);
   const [profitLoading, setProfitLoading] = useState(false);
 
   const [customerLedger, setCustomerLedger] = useState<{ id: number; name: string } | null>(null);
@@ -221,7 +222,7 @@ export default function ReportsPage() {
   const loadProfit = async () => {
     setProfitLoading(true);
     try {
-      const res = await apiClient.get('/reports/profit', {
+      const res = await apiClient.get<ProfitReportResponse>('/reports/profit', {
         params: {
           from,
           to,
@@ -824,11 +825,12 @@ export default function ReportsPage() {
                 }
                 onExport={() =>
                   exportExcel(
-                    ['المنتج', 'الكود', 'الكمية المباعة', 'الإيرادات', 'التكلفة', 'الربح الإجمالي'],
+                    ['المنتج', 'الكود', 'الكمية الصافية', 'المرتجع', 'الإيرادات الصافية', 'التكلفة الصافية', 'الربح الإجمالي'],
                     profitData.data.map((r) => [
                       r.product_name,
-                      r.barcode,
+                      r.sku ?? '—',
                       r.total_sold,
+                      r.total_returned,
                       r.total_revenue,
                       r.total_cost,
                       r.gross_profit,
@@ -863,7 +865,7 @@ export default function ReportsPage() {
                           {r.product_name}
                         </td>
                         <td className="px-4 py-3 font-mono text-xs" style={text.muted}>
-                          {r.barcode}
+                          {r.sku ?? '—'}
                         </td>
                         <td className="px-4 py-3 text-left font-medium" style={text.body}>
                           {r.total_sold}
