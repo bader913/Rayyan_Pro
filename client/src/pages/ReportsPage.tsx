@@ -106,6 +106,26 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function pickApiError(error: unknown, fallback: string) {
+  const e = error as {
+    message?: string;
+    response?: {
+      status?: number;
+      data?: {
+        message?: string;
+        error?: string;
+      };
+    };
+  };
+
+  return (
+    e?.response?.data?.message ||
+    e?.response?.data?.error ||
+    (e?.response?.status ? `HTTP ${e.response.status}` : '') ||
+    e?.message ||
+    fallback
+  );
+}
 function exportExcel(headers: string[], rows: (string | number)[][], filename: string, sheetName = 'تقرير') {
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
   const range = XLSX.utils.decode_range(ws['!ref'] ?? 'A1');
@@ -135,6 +155,7 @@ export default function ReportsPage() {
   const [showLowStock, setShowLowStock] = useState(false);
 
   const [profitData, setProfitData] = useState<ProfitReportResponse | null>(null);
+  const [reportError, setReportError] = useState<string | null>(null);
   const [profitLoading, setProfitLoading] = useState(false);
 
   const [customerLedger, setCustomerLedger] = useState<{ id: number; name: string } | null>(null);
@@ -142,7 +163,7 @@ export default function ReportsPage() {
   const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
   const [selectedPurchaseId, setSelectedPurchaseId] = useState<number | null>(null);
 
-    const [reportWarehouseId, setReportWarehouseId] = useState('');
+  const [reportWarehouseId, setReportWarehouseId] = useState('');
 
   const { data: settings } = useQuery({
     queryKey: ['settings'],
@@ -163,12 +184,13 @@ export default function ReportsPage() {
     enabled: isMultiWarehouseEnabled,
     staleTime: 30000,
   });
-    const selectedReportWarehouse =
+  const selectedReportWarehouse =
     isMultiWarehouseEnabled && reportWarehouseId
       ? warehouses.find((w) => String(w.id) === String(reportWarehouseId)) ?? null
       : null;
-  const loadSales = async () => {
+    const loadSales = async () => {
     setSalesLoading(true);
+    setReportError(null);
     try {
       const res = await apiClient.get<SalesReportResponse>('/reports/sales', {
         params: {
@@ -178,14 +200,17 @@ export default function ReportsPage() {
         },
       });
       setSalesData(res.data);
-    } catch {
-      // ignore
+    } catch (error) {
+      console.error('reports/sales failed', error);
+      setReportError(pickApiError(error, 'تعذر تحميل تقرير المبيعات'));
+      setSalesData(null);
     }
     setSalesLoading(false);
   };
 
-  const loadPurchases = async () => {
+    const loadPurchases = async () => {
     setPurLoading(true);
+    setReportError(null);
     try {
       const res = await apiClient.get<PurchasesReportResponse>('/reports/purchases', {
         params: {
@@ -195,14 +220,16 @@ export default function ReportsPage() {
         },
       });
       setPurData(res.data);
-    } catch {
-      // ignore
+    } catch (error) {
+      console.error('reports/purchases failed', error);
+      setReportError(pickApiError(error, 'تعذر تحميل تقرير المشتريات'));
+      setPurData(null);
     }
     setPurLoading(false);
   };
-
-  const loadStock = async () => {
+    const loadStock = async () => {
     setStockLoading(true);
+    setReportError(null);
     try {
       const res = await apiClient.get<StockReportResponse>('/reports/stock', {
         params: {
@@ -213,14 +240,17 @@ export default function ReportsPage() {
       });
 
       setStockData(res.data);
-    } catch {
-      // ignore
+    } catch (error) {
+      console.error('reports/stock failed', error);
+      setReportError(pickApiError(error, 'تعذر تحميل تقرير المخزون'));
+      setStockData(null);
     }
     setStockLoading(false);
   };
 
-  const loadProfit = async () => {
+   const loadProfit = async () => {
     setProfitLoading(true);
+    setReportError(null);
     try {
       const res = await apiClient.get<ProfitReportResponse>('/reports/profit', {
         params: {
@@ -230,8 +260,10 @@ export default function ReportsPage() {
         },
       });
       setProfitData(res.data);
-    } catch {
-      // ignore
+    } catch (error) {
+      console.error('reports/profit failed', error);
+      setReportError(pickApiError(error, 'تعذر تحميل تقرير الربح والخسارة'));
+      setProfitData(null);
     }
     setProfitLoading(false);
   };
@@ -272,6 +304,18 @@ export default function ReportsPage() {
           </div>
         </div>
       </div>
+            {reportError && (
+        <div
+          className="rounded-2xl px-4 py-3 text-sm font-bold"
+          style={{
+            background: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.22)',
+            color: '#b91c1c',
+          }}
+        >
+          {reportError}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-2 flex-wrap">
@@ -526,30 +570,30 @@ export default function ReportsPage() {
                         </button>
                       </td>
 
-                     <td className="px-4 py-3">
-  {r.supplier_id ? (
-    <button
-      onClick={() => setSupplierLedger({ id: r.supplier_id!, name: r.supplier_name ?? '—' })}
-      className="text-sm font-bold text-amber-600 hover:underline focus:outline-none"
-    >
-      {r.supplier_name ?? '—'}
-    </button>
-  ) : (
-    <span className="text-sm font-medium" style={text.body}>
-      {r.supplier_name ?? '—'}
-    </span>
-  )}
-</td>
+                      <td className="px-4 py-3">
+                        {r.supplier_id ? (
+                          <button
+                            onClick={() => setSupplierLedger({ id: r.supplier_id!, name: r.supplier_name ?? '—' })}
+                            className="text-sm font-bold text-amber-600 hover:underline focus:outline-none"
+                          >
+                            {r.supplier_name ?? '—'}
+                          </button>
+                        ) : (
+                          <span className="text-sm font-medium" style={text.body}>
+                            {r.supplier_name ?? '—'}
+                          </span>
+                        )}
+                      </td>
 
-{isMultiWarehouseEnabled && (
-  <td className="px-4 py-3 text-xs font-medium" style={text.secondary}>
-    {formatWarehouseLabel(r)}
-  </td>
-)}
+                      {isMultiWarehouseEnabled && (
+                        <td className="px-4 py-3 text-xs font-medium" style={text.secondary}>
+                          {formatWarehouseLabel(r)}
+                        </td>
+                      )}
 
-<td className="px-4 py-3 text-left font-black" style={text.heading}>
-  {fmt(r.total_amount)}
-</td>
+                      <td className="px-4 py-3 text-left font-black" style={text.heading}>
+                        {fmt(r.total_amount)}
+                      </td>
 
                       <td className="px-4 py-3 text-left text-emerald-500 font-bold">
                         {fmt(r.paid_amount)}
@@ -766,7 +810,7 @@ export default function ReportsPage() {
             warehouses={warehouses}
             onWarehouseChange={setReportWarehouseId}
           />
-                    {isMultiWarehouseEnabled && selectedReportWarehouse && (
+          {isMultiWarehouseEnabled && selectedReportWarehouse && (
             <div
               className="rounded-2xl px-4 py-3 text-sm font-semibold"
               style={{
