@@ -22,6 +22,10 @@ export interface CreateReturnInput {
   shift_id?: number | null;
 }
 
+function roundMoney4(value: number): number {
+  return Number((Number.isFinite(value) ? value : 0).toFixed(4));
+}
+
 export class SalesReturnsService {
   async createReturn(input: CreateReturnInput, userId: number) {
     if (!Array.isArray(input.items) || input.items.length === 0) {
@@ -39,8 +43,8 @@ export class SalesReturnsService {
     await withTransaction(async (client) => {
       const settingsRes = await client.query<{ key: string; value: string }>(
         `SELECT key, value
-   FROM settings
-   WHERE key IN ('enable_multi_warehouse', 'default_sales_warehouse_id')`
+         FROM settings
+         WHERE key IN ('enable_multi_warehouse', 'default_sales_warehouse_id')`
       );
 
       const settingsMap = new Map(settingsRes.rows.map((row) => [row.key, row.value]));
@@ -91,15 +95,13 @@ export class SalesReturnsService {
         sale.warehouse_code?.trim() ||
         (returnWarehouseId ? `#${returnWarehouseId}` : 'غير معروف');
 
-      // إذا كانت الفاتورة القديمة لا تحمل warehouse_id، نحاول فقط عند إطفاء النظام
-      // أن نعيد للمستودع الافتراضي نفسه الذي نعتمده للبيع/الشراء.
       if (!returnWarehouseId && !isMultiWarehouseEnabled) {
         if (configuredDefaultWarehouseId) {
           const defaultWarehouseRes = await client.query<{ id: string; name: string | null; code: string | null }>(
             `SELECT id, name, code
-       FROM warehouses
-       WHERE id = $1 AND is_active = TRUE
-       LIMIT 1`,
+             FROM warehouses
+             WHERE id = $1 AND is_active = TRUE
+             LIMIT 1`,
             [configuredDefaultWarehouseId]
           );
 
@@ -115,10 +117,10 @@ export class SalesReturnsService {
         if (!returnWarehouseId) {
           const mainWarehouseRes = await client.query<{ id: string; name: string | null; code: string | null }>(
             `SELECT id, name, code
-       FROM warehouses
-       WHERE code = 'MAIN' AND is_active = TRUE
-       ORDER BY id ASC
-       LIMIT 1`
+             FROM warehouses
+             WHERE code = 'MAIN' AND is_active = TRUE
+             ORDER BY id ASC
+             LIMIT 1`
           );
 
           if (mainWarehouseRes.rows[0]) {
@@ -133,10 +135,10 @@ export class SalesReturnsService {
         if (!returnWarehouseId) {
           const fallbackWarehouseRes = await client.query<{ id: string; name: string | null; code: string | null }>(
             `SELECT id, name, code
-       FROM warehouses
-       WHERE is_active = TRUE
-       ORDER BY id ASC
-       LIMIT 1`
+             FROM warehouses
+             WHERE is_active = TRUE
+             ORDER BY id ASC
+             LIMIT 1`
           );
 
           if (fallbackWarehouseRes.rows[0]) {
@@ -167,6 +169,10 @@ export class SalesReturnsService {
         product_id: number;
         quantity: string;
         unit_price: string;
+        total_price: string;
+        unit_cost: string | null;
+        net_total: string | null;
+        current_purchase_price: string;
         product_name: string;
       }>(
         `SELECT
@@ -174,6 +180,10 @@ export class SalesReturnsService {
            si.product_id,
            si.quantity,
            si.unit_price,
+           si.total_price,
+           si.unit_cost,
+           si.net_total,
+           p.purchase_price AS current_purchase_price,
            p.name AS product_name
          FROM sale_items si
          JOIN products p ON p.id = si.product_id
@@ -207,7 +217,9 @@ export class SalesReturnsService {
         ])
       );
 
-      const normalizedItems = input.items.map((raw) => {
+      const normalizedMap = new Map<number, { sale_item_id: number; product_id: number; quantity: number }>();
+
+      for (const raw of input.items) {
         const saleItemId = Number(raw.sale_item_id);
         const productId = Number(raw.product_id);
         const quantity = Number(raw.quantity);
@@ -224,12 +236,26 @@ export class SalesReturnsService {
           throw Object.assign(new Error('كمية الإرجاع يجب أن تكون أكبر من صفر'), { statusCode: 400 });
         }
 
-        return {
-          sale_item_id: saleItemId,
-          product_id: productId,
-          quantity,
-        };
-      });
+        const existing = normalizedMap.get(saleItemId);
+
+        if (existing) {
+          if (existing.product_id !== productId) {
+            throw Object.assign(new Error('يوجد تعارض في product_id لنفس sale_item_id'), {
+              statusCode: 400,
+            });
+          }
+
+          existing.quantity = roundMoney4(existing.quantity + quantity);
+        } else {
+          normalizedMap.set(saleItemId, {
+            sale_item_id: saleItemId,
+            product_id: productId,
+            quantity: roundMoney4(quantity),
+          });
+        }
+      }
+
+      const normalizedItems = Array.from(normalizedMap.values());
 
       const requestedQtyMap = new Map<number, number>();
       for (const item of normalizedItems) {
@@ -267,11 +293,29 @@ export class SalesReturnsService {
           );
         }
 
+        const sourceNetTotal =
+          saleItem.net_total != null
+            ? parseFloat(String(saleItem.net_total ?? '0'))
+            : parseFloat(String(saleItem.total_price ?? '0'));
+
+        const sourceUnitCost =
+          saleItem.unit_cost != null
+            ? parseFloat(String(saleItem.unit_cost ?? '0'))
+            : parseFloat(String(saleItem.current_purchase_price ?? '0'));
+
+        const unitNet = soldQty > 0
+          ? sourceNetTotal / soldQty
+          : parseFloat(String(saleItem.unit_price || 0));
+
+        const lineNetTotal = roundMoney4(unitNet * item.quantity);
+
         return {
           sale_item_id: item.sale_item_id,
           product_id: item.product_id,
           quantity: item.quantity,
           unit_price: parseFloat(String(saleItem.unit_price || 0)),
+          unit_cost: roundMoney4(sourceUnitCost),
+          net_total: lineNetTotal,
           product_name: saleItem.product_name,
         };
       });
@@ -280,7 +324,7 @@ export class SalesReturnsService {
 
       let totalAmount = 0;
       for (const item of validatedItems) {
-        totalAmount += item.quantity * item.unit_price;
+        totalAmount = roundMoney4(totalAmount + item.net_total);
       }
 
       const returnRow = await client.query<{ id: number }>(
@@ -305,13 +349,20 @@ export class SalesReturnsService {
       const returnId = returnRow.rows[0].id;
 
       for (const item of validatedItems) {
-        const lineTotal = item.quantity * item.unit_price;
-
         await client.query(
           `INSERT INTO sales_return_items
-             (return_id, sale_item_id, product_id, quantity, unit_price, total_price)
-           VALUES ($1,$2,$3,$4,$5,$6)`,
-          [returnId, item.sale_item_id, item.product_id, item.quantity, item.unit_price, lineTotal]
+             (return_id, sale_item_id, product_id, quantity, unit_price, total_price, unit_cost, net_total)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+          [
+            returnId,
+            item.sale_item_id,
+            item.product_id,
+            item.quantity,
+            item.unit_price,
+            item.net_total,
+            item.unit_cost,
+            item.net_total,
+          ]
         );
 
         const movement = await recordStockMovement(client, {
@@ -426,7 +477,7 @@ export class SalesReturnsService {
     return result!;
   }
 
-    async listReturns(params: {
+  async listReturns(params: {
     sale_id?: number;
     warehouse_id?: number;
     date_from?: string;
@@ -518,6 +569,8 @@ export class SalesReturnsService {
           ri.quantity,
           ri.unit_price,
           ri.total_price,
+          ri.unit_cost,
+          ri.net_total,
           p.name AS product_name,
           p.barcode,
           p.unit
@@ -562,6 +615,8 @@ export class SalesReturnsService {
          GREATEST(si.quantity - COALESCE(rr.returned_quantity, 0), 0) AS remaining_quantity,
          si.unit_price,
          si.total_price,
+         si.unit_cost,
+         si.net_total,
          si.price_type,
          p.name AS product_name,
          p.barcode,
