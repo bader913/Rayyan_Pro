@@ -16,8 +16,13 @@ import { BarChart2, FileText, Package, TrendingUp, Search, Download, Warehouse }
 const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: 'short', day: 'numeric' });
 
-const today = new Date().toISOString().split('T')[0];
-const monthStart = new Date(new Date().setDate(1)).toISOString().split('T')[0];
+function toLocalDateInputValue(date = new Date()) {
+  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
+  return new Date(date.getTime() - offsetMs).toISOString().split('T')[0];
+}
+
+const today = toLocalDateInputValue();
+const monthStart = toLocalDateInputValue(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 
 
 
